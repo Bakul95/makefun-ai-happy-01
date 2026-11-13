@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Procedural 1024x1024 PNG for make.fun ai-happy-01.
 
-Draws a warm golden-sunrise park scene: a small friendly robot in a
-tiny judge's wig handing a big sunflower to a laughing grandmother on
-a park bench, a cheering child, a wagging dog, balloons, confetti and
-a red banner reading "THANK YOU, JUDGE!".
+A warm golden-sunrise park scene: a small friendly robot in a tiny
+judge's wig hands a big sunflower to a laughing grandmother on a park
+bench, while a cheering child, a wagging dog, balloons and confetti
+celebrate under a red banner that reads "THANK YOU, JUDGE!".
 
-Pure standard library (os, math, struct, zlib, pathlib). Deterministic:
-the same bytes on every run. Renders at 2x supersampling into a
-2048x2048 RGB buffer, box-downsamples to 1024x1024, and writes the PNG
-with a hand-rolled encoder (filter byte 0 per row, 8-bit colour type 2).
+Pure standard library (math, os, struct, zlib, pathlib). Fully
+deterministic: the same bytes on every run. Renders at 2x
+supersampling into a 2048x2048 RGB buffer, box-downsamples to
+1024x1024, and writes the PNG with a hand-rolled encoder (filter
+byte 0 per row, 8-bit colour type 2).
 """
 
 import math
@@ -30,56 +31,56 @@ buf = bytearray(IW * IW * 3)
 # ---------------------------------------------------------------------------
 # Palette
 # ---------------------------------------------------------------------------
-SKY_TOP = (255, 217, 168)
-SKY_MID = (255, 192, 106)
-SKY_LOW = (255, 233, 166)
-SUN = (255, 217, 77)
-SUN_RAY = (255, 201, 60)
-SUN_INNER = (255, 226, 110)
-SUN_HALO = (255, 233, 160)
-CLOUD = (255, 248, 236)
-HILL_BACK = (111, 168, 92)
-HILL_FRONT = (143, 190, 106)
-WOOD = (169, 113, 63)
-WOOD_DARK = (138, 90, 46)
-SKIN = (242, 196, 155)
-HAIR_GREY = (207, 207, 207)
-SHAWL = (179, 136, 235)
-DRESS = (126, 87, 194)
-ROBOT_CREAM = (255, 243, 220)
-ROBOT_TEAL = (43, 179, 163)
-WIG = (245, 242, 234)
-INK = (51, 48, 46)
-CHEEK = (255, 158, 158)
-PETAL = (255, 201, 60)
-FLOWER_CENTRE = (122, 74, 33)
-FLOWER_DOT = (90, 52, 19)
-LEAF = (96, 160, 74)
-DOG_GOLD = (232, 169, 79)
-DOG_DARK = (201, 138, 58)
-DOG_LIGHT = (245, 217, 168)
-SHIRT_RED = (231, 76, 60)
-CHILD_HAIR = (109, 76, 65)
-SHORTS_BLUE = (63, 105, 178)
-BANNER_RED = (214, 69, 65)
-BANNER_DARK = (169, 50, 38)
-BANNER_GOLD = (255, 201, 60)
-BANNER_TEXT = (255, 246, 224)
-HEART_PINK = (255, 107, 129)
-STRING_BROWN = (138, 90, 46)
-BIRD_GREY = (107, 91, 74)
-BALLOON_RED = (231, 76, 60)
-BALLOON_TEAL = (43, 179, 163)
-BALLOON_YELLOW = (255, 201, 60)
-CONFETTI_BLUE = (63, 105, 178)
-CONFETTI_LAV = (179, 136, 235)
+SKY_TOP = (255, 214, 164)
+SKY_MID = (255, 190, 104)
+SKY_LOW = (255, 232, 164)
+SUN_DISC = (255, 216, 74)
+SUN_RAYS = (255, 200, 58)
+SUN_CORE = (255, 226, 112)
+SUN_GLOW = (255, 234, 162)
+CLOUD = (255, 249, 238)
+HILL_BACK = (112, 168, 92)
+HILL_FRONT = (144, 191, 107)
+BENCH = (170, 114, 64)
+BENCH_DARK = (137, 89, 45)
+SKIN = (243, 197, 156)
+GREY_HAIR = (208, 208, 208)
+SHAWL = (180, 137, 236)
+DRESS = (127, 88, 195)
+ROBOT_BODY = (255, 244, 221)
+ROBOT_TEAL = (44, 180, 164)
+WIG = (246, 243, 235)
+INK = (52, 49, 47)
+BLUSH = (255, 159, 159)
+PETAL = (255, 202, 61)
+SEED = (123, 75, 34)
+SEED_DOT = (91, 53, 20)
+LEAF = (97, 161, 75)
+DOG_FUR = (233, 170, 80)
+DOG_EAR = (202, 139, 59)
+DOG_CREAM = (246, 218, 169)
+SHIRT = (232, 77, 61)
+KID_HAIR = (110, 77, 66)
+SHORTS = (64, 106, 179)
+BANNER = (215, 70, 66)
+BANNER_SHADE = (170, 51, 39)
+BANNER_GOLD = (255, 202, 61)
+BANNER_TEXT = (255, 247, 225)
+PINK = (255, 108, 130)
+STRING = (139, 91, 47)
+BIRD = (108, 92, 75)
+RED = (232, 77, 61)
+TEAL = (44, 180, 164)
+YELLOW = (255, 202, 61)
+BLUE = (64, 106, 179)
+LILAC = (180, 137, 236)
 WHITE = (255, 255, 255)
+ORANGE = (255, 166, 0)
 
 
 # ---------------------------------------------------------------------------
-# Low-level drawing on the internal (2048x2048) buffer.
-# span() takes internal coordinates; every other helper takes design
-# coordinates (1024 space) and scales by S.
+# Low-level drawing. span() takes internal (2048) coordinates; every
+# other helper takes design (1024) coordinates and scales by S.
 # ---------------------------------------------------------------------------
 def span(y, x0, x1, color):
     """Fill one horizontal run of the internal buffer, clipped."""
@@ -276,20 +277,21 @@ def sky():
 
 
 def sun():
-    cx, cy = 898, 112
-    # Soft halo so the sunrise glows, and the whole disc sits inside the
-    # canvas (it used to be clipped by the top-right corner).
-    disc(cx, cy, 110, SUN_HALO)
+    # Centre (910, 350): halo r=100 reaches x 810..1010, y 250..450,
+    # clear of the banner above and fully inside the 1024 canvas, so the
+    # whole disc and its rays are visible instead of hiding behind it.
+    cx, cy = 910, 350
+    disc(cx, cy, 100, SUN_GLOW)
     for k in range(8):
         a = math.radians(k * 45)
-        tip = (cx + 108 * math.cos(a), cy + 108 * math.sin(a))
+        tip = (cx + 96 * math.cos(a), cy + 96 * math.sin(a))
         b1a = a - math.radians(9)
         b2a = a + math.radians(9)
-        b1 = (cx + 66 * math.cos(b1a), cy + 66 * math.sin(b1a))
-        b2 = (cx + 66 * math.cos(b2a), cy + 66 * math.sin(b2a))
-        polygon([tip, b1, b2], SUN_RAY)
-    disc(cx, cy, 68, SUN)
-    disc(cx, cy, 52, SUN_INNER)
+        b1 = (cx + 62 * math.cos(b1a), cy + 62 * math.sin(b1a))
+        b2 = (cx + 62 * math.cos(b2a), cy + 62 * math.sin(b2a))
+        polygon([tip, b1, b2], SUN_RAYS)
+    disc(cx, cy, 62, SUN_DISC)
+    disc(cx, cy, 48, SUN_CORE)
 
 
 def cloud(cx, cy, rx, ry):
@@ -302,7 +304,7 @@ def clouds():
     cloud(210, 300, 72, 26)
     cloud(330, 338, 56, 20)
     cloud(770, 330, 62, 22)
-    cloud(880, 292, 44, 16)
+    cloud(640, 300, 44, 16)
 
 
 def balloon(cx, cy, r, color):
@@ -311,18 +313,18 @@ def balloon(cx, cy, r, color):
     polygon(
         [(cx - 8, cy + r - 2), (cx + 8, cy + r - 2), (cx, cy + r + 12)], color
     )
-    thick_line(cx, cy + r + 10, 128, 500, 3, STRING_BROWN)
+    thick_line(cx, cy + r + 10, 128, 500, 3, STRING)
 
 
 def balloons():
-    balloon(85, 330, 32, BALLOON_RED)
-    balloon(148, 292, 28, BALLOON_TEAL)
-    balloon(122, 392, 26, BALLOON_YELLOW)
+    balloon(85, 330, 32, RED)
+    balloon(148, 292, 28, TEAL)
+    balloon(122, 392, 26, YELLOW)
 
 
 def bird(cx, cy):
-    arc(cx - 9, cy, 9, 180, 360, 3, BIRD_GREY)
-    arc(cx + 9, cy, 9, 180, 360, 3, BIRD_GREY)
+    arc(cx - 9, cy, 9, 180, 360, 3, BIRD)
+    arc(cx + 9, cy, 9, 180, 360, 3, BIRD)
 
 
 def birds():
@@ -332,22 +334,22 @@ def birds():
 
 
 CONFETTI = [
-    (60, 420, BALLOON_RED, 0),
-    (180, 300, BALLOON_TEAL, 1),
-    (260, 380, BALLOON_YELLOW, 0),
-    (420, 330, HEART_PINK, 1),
-    (520, 420, CONFETTI_BLUE, 0),
-    (600, 300, CONFETTI_LAV, 1),
-    (700, 380, BALLOON_RED, 0),
-    (820, 420, BALLOON_TEAL, 1),
-    (940, 360, BALLOON_YELLOW, 0),
-    (980, 520, HEART_PINK, 1),
-    (340, 520, CONFETTI_BLUE, 0),
-    (480, 560, CONFETTI_LAV, 1),
-    (660, 540, BALLOON_RED, 0),
-    (760, 480, BALLOON_YELLOW, 1),
-    (880, 560, BALLOON_TEAL, 0),
-    (120, 560, HEART_PINK, 1),
+    (60, 420, RED, 0),
+    (180, 300, TEAL, 1),
+    (260, 380, YELLOW, 0),
+    (420, 330, PINK, 1),
+    (520, 420, BLUE, 0),
+    (600, 300, LILAC, 1),
+    (700, 380, RED, 0),
+    (820, 420, TEAL, 1),
+    (950, 480, YELLOW, 0),
+    (980, 520, PINK, 1),
+    (340, 520, BLUE, 0),
+    (480, 560, LILAC, 1),
+    (660, 540, RED, 0),
+    (760, 480, YELLOW, 1),
+    (880, 560, TEAL, 0),
+    (120, 560, PINK, 1),
 ]
 
 
@@ -365,27 +367,27 @@ def hills():
 
 
 def bench():
-    fill_rect(300, 640, 420, 16, WOOD)
-    fill_rect(300, 668, 420, 16, WOOD)
-    fill_rect(300, 700, 420, 22, WOOD_DARK)
-    fill_rect(330, 722, 18, 78, WOOD_DARK)
-    fill_rect(672, 722, 18, 78, WOOD_DARK)
-    fill_rect(316, 612, 14, 110, WOOD)
-    fill_rect(690, 612, 14, 110, WOOD)
+    fill_rect(300, 640, 420, 16, BENCH)
+    fill_rect(300, 668, 420, 16, BENCH)
+    fill_rect(300, 700, 420, 22, BENCH_DARK)
+    fill_rect(330, 722, 18, 78, BENCH_DARK)
+    fill_rect(672, 722, 18, 78, BENCH_DARK)
+    fill_rect(316, 612, 14, 110, BENCH)
+    fill_rect(690, 612, 14, 110, BENCH)
 
 
 def grandmother():
-    # Hair behind the head, plus a bun.
-    disc(630, 545, 54, HAIR_GREY)
-    disc(630, 498, 22, HAIR_GREY)
+    # Grey hair behind the head, plus a bun on top.
+    disc(630, 545, 54, GREY_HAIR)
+    disc(630, 498, 22, GREY_HAIR)
     # Head and laughing face.
     disc(630, 566, 50, SKIN)
     arc(608, 560, 11, 180, 360, 6, INK)  # closed laughing eyes
     arc(652, 560, 11, 180, 360, 6, INK)
-    disc(590, 586, 11, CHEEK)
-    disc(670, 586, 11, CHEEK)
+    disc(590, 586, 11, BLUSH)
+    disc(670, 586, 11, BLUSH)
     disc(630, 592, 17, INK)  # open laughing mouth
-    ellipse(630, 600, 10, 6, CHEEK)  # tongue
+    ellipse(630, 600, 10, 6, BLUSH)  # tongue
     # Shawl and dress.
     polygon([(576, 618), (684, 618), (708, 742), (552, 742)], SHAWL)
     polygon([(568, 720), (692, 720), (702, 832), (558, 832)], DRESS)
@@ -395,13 +397,13 @@ def grandmother():
     thick_line(676, 646, 618, 626, 18, SHAWL)
     disc(616, 628, 11, SKIN)
     # Shoes.
-    ellipse(598, 846, 18, 10, WOOD_DARK)
-    ellipse(662, 846, 18, 10, WOOD_DARK)
+    ellipse(598, 846, 18, 10, BENCH_DARK)
+    ellipse(662, 846, 18, 10, BENCH_DARK)
 
 
 def robot():
     # Antenna with a gold star.
-    thick_line(360, 462, 360, 424, 6, BIRD_GREY)
+    thick_line(360, 462, 360, 424, 6, BIRD)
     star(360, 410, 18, BANNER_GOLD)
     # Judge's wig: white puffs around the head.
     for cx, cy, r in [
@@ -415,22 +417,22 @@ def robot():
     ]:
         disc(cx, cy, r, WIG)
     # Head and happy face.
-    disc(360, 524, 62, ROBOT_CREAM)
+    disc(360, 524, 62, ROBOT_BODY)
     arc(336, 524, 12, 180, 360, 7, INK)  # crescent eyes
     arc(384, 524, 12, 180, 360, 7, INK)
     arc(360, 550, 16, 0, 180, 6, INK)  # smile, lower half
-    disc(318, 548, 9, CHEEK)
-    disc(402, 548, 9, CHEEK)
+    disc(318, 548, 9, BLUSH)
+    disc(402, 548, 9, BLUSH)
     # Neck, body, belly panel with a cream heart.
     fill_rect(344, 576, 32, 28, ROBOT_TEAL)
-    rrect(300, 600, 120, 160, 40, ROBOT_CREAM)
+    rrect(300, 600, 120, 160, 40, ROBOT_BODY)
     rrect(322, 640, 76, 80, 20, ROBOT_TEAL)
-    heart(360, 682, 16, ROBOT_CREAM)
+    heart(360, 682, 16, ROBOT_BODY)
     # Arms: left down, right up holding the sunflower.
-    thick_line(306, 646, 250, 700, 18, ROBOT_CREAM)
-    disc(248, 702, 12, ROBOT_CREAM)
-    thick_line(414, 646, 490, 582, 18, ROBOT_CREAM)
-    disc(492, 580, 12, ROBOT_CREAM)
+    thick_line(306, 646, 250, 700, 18, ROBOT_BODY)
+    disc(248, 702, 12, ROBOT_BODY)
+    thick_line(414, 646, 490, 582, 18, ROBOT_BODY)
+    disc(492, 580, 12, ROBOT_BODY)
     # Feet.
     rrect(320, 756, 34, 26, 8, INK)
     rrect(366, 756, 34, 26, 8, INK)
@@ -445,31 +447,31 @@ def sunflower():
     for k in range(12):
         a = math.radians(k * 30)
         disc(505 + 42 * math.cos(a), 535 + 42 * math.sin(a), 21, PETAL)
-    disc(505, 535, 29, FLOWER_CENTRE)
+    disc(505, 535, 29, SEED)
     # 9 small dark dots in the centre.
-    disc(505, 535, 3, FLOWER_DOT)
+    disc(505, 535, 3, SEED_DOT)
     for k in range(8):
         a = math.radians(k * 45)
-        disc(505 + 15 * math.cos(a), 535 + 15 * math.sin(a), 3, FLOWER_DOT)
+        disc(505 + 15 * math.cos(a), 535 + 15 * math.sin(a), 3, SEED_DOT)
     # A little pink heart floating beside the flower.
-    heart(560, 452, 15, HEART_PINK)
+    heart(560, 452, 15, PINK)
 
 
 def child():
     # Hair behind, head, hair cap, face.
-    disc(790, 628, 36, CHILD_HAIR)
+    disc(790, 628, 36, KID_HAIR)
     disc(790, 644, 34, SKIN)
-    disc(790, 622, 34, CHILD_HAIR)
+    disc(790, 622, 34, KID_HAIR)
     disc(790, 634, 30, SKIN)
     # Laughing face.
     arc(778, 642, 8, 180, 360, 5, INK)
     arc(802, 642, 8, 180, 360, 5, INK)
-    disc(768, 656, 7, CHEEK)
-    disc(812, 656, 7, CHEEK)
+    disc(768, 656, 7, BLUSH)
+    disc(812, 656, 7, BLUSH)
     disc(790, 664, 10, INK)
     # Red shirt, blue shorts.
-    rrect(758, 682, 64, 82, 18, SHIRT_RED)
-    fill_rect(762, 762, 56, 30, SHORTS_BLUE)
+    rrect(758, 682, 64, 82, 18, SHIRT)
+    fill_rect(762, 762, 56, 30, SHORTS)
     # Arms thrown up in a cheer.
     thick_line(764, 694, 730, 632, 13, SKIN)
     disc(730, 632, 9, SKIN)
@@ -478,29 +480,29 @@ def child():
     # Legs and shoes.
     fill_rect(768, 792, 12, 40, SKIN)
     fill_rect(800, 792, 12, 40, SKIN)
-    ellipse(772, 838, 12, 7, SHIRT_RED)
-    ellipse(808, 838, 12, 7, SHIRT_RED)
+    ellipse(772, 838, 12, 7, SHIRT)
+    ellipse(808, 838, 12, 7, SHIRT)
 
 
 def dog():
     # Wagging tail.
-    thick_line(222, 876, 258, 826, 12, DOG_GOLD)
-    disc(260, 822, 9, DOG_GOLD)
+    thick_line(222, 876, 258, 826, 12, DOG_FUR)
+    disc(260, 822, 9, DOG_FUR)
     # Body, chest, head.
-    ellipse(180, 872, 46, 40, DOG_GOLD)
-    ellipse(180, 880, 28, 26, DOG_LIGHT)
-    disc(180, 802, 34, DOG_GOLD)
+    ellipse(180, 872, 46, 40, DOG_FUR)
+    ellipse(180, 880, 28, 26, DOG_CREAM)
+    disc(180, 802, 34, DOG_FUR)
     # Floppy ears, snout, nose, tongue, eyes.
-    ellipse(150, 788, 12, 22, DOG_DARK)
-    ellipse(210, 788, 12, 22, DOG_DARK)
-    ellipse(180, 814, 17, 12, DOG_LIGHT)
+    ellipse(150, 788, 12, 22, DOG_EAR)
+    ellipse(210, 788, 12, 22, DOG_EAR)
+    ellipse(180, 814, 17, 12, DOG_CREAM)
     disc(180, 806, 7, INK)
-    ellipse(180, 828, 8, 12, HEART_PINK)
+    ellipse(180, 828, 8, 12, PINK)
     disc(168, 794, 4, INK)
     disc(192, 794, 4, INK)
     # Front legs.
-    ellipse(164, 912, 10, 14, DOG_GOLD)
-    ellipse(196, 912, 10, 14, DOG_GOLD)
+    ellipse(164, 912, 10, 14, DOG_FUR)
+    ellipse(196, 912, 10, 14, DOG_FUR)
 
 
 FLOWER_SPOTS = [
@@ -518,12 +520,12 @@ FLOWER_SPOTS = [
     (972, 915),
 ]
 FLOWER_COLORS = [
-    BALLOON_RED,
-    BALLOON_TEAL,
-    BALLOON_YELLOW,
-    HEART_PINK,
-    CONFETTI_BLUE,
-    CONFETTI_LAV,
+    RED,
+    TEAL,
+    YELLOW,
+    PINK,
+    BLUE,
+    LILAC,
 ]
 
 
@@ -547,17 +549,17 @@ def butterfly(cx, cy, color):
 
 
 def butterflies():
-    butterfly(252, 776, (255, 165, 0))
-    butterfly(884, 700, CONFETTI_LAV)
+    butterfly(252, 776, ORANGE)
+    butterfly(884, 700, LILAC)
 
 
 def banner():
-    thick_line(196, 0, 196, 62, 4, STRING_BROWN)
-    thick_line(828, 0, 828, 62, 4, STRING_BROWN)
+    thick_line(196, 0, 196, 62, 4, STRING)
+    thick_line(828, 0, 828, 62, 4, STRING)
     rrect(176, 56, 672, 192, 18, BANNER_GOLD)
-    rrect(184, 64, 656, 176, 14, BANNER_RED)
-    polygon([(184, 64), (184, 240), (148, 152)], BANNER_DARK)
-    polygon([(840, 64), (840, 240), (876, 152)], BANNER_DARK)
+    rrect(184, 64, 656, 176, 14, BANNER)
+    polygon([(184, 64), (184, 240), (148, 152)], BANNER_SHADE)
+    polygon([(840, 64), (840, 240), (876, 152)], BANNER_SHADE)
     disc(166, 152, 8, BANNER_GOLD)
     disc(858, 152, 8, BANNER_GOLD)
     draw_text_centered("THANK YOU,", 84, 11, BANNER_TEXT)
